@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Backup consistente do config.db (providers, virtual keys, budgets) via sqlite3 .backup.
 # Rode como root (cron), porque data/ pertence ao UID 1000 do container:
-#   0 3 * * * /opt/llm-gateway/scripts/backup.sh >> /var/log/llm-gateway-backup.log 2>&1
+#   0 3 * * * bash /opt/bifrost-gateway/deploy/3tentos/scripts/backup.sh >> /var/log/llm-gateway-backup.log 2>&1
 # Requer: apt install sqlite3
 # Uso: backup.sh [--with-logs]   (--with-logs inclui o logs.db, que pode ser grande)
 #

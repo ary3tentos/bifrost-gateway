@@ -1,6 +1,6 @@
 # Bifrost — gateway LLM da 3tentos (Azure AI Foundry)
 #
-# Roda na VPS em /opt/llm-gateway (ver README.md). Segredos ficam em .env (fora do git).
+# Roda na VPS em /opt/bifrost-gateway/deploy/3tentos (ver README.md). Segredos ficam em .env (fora do git).
 # A porta fica presa em 127.0.0.1: o Docker publica portas por cima do ufw, então
 # "8081:8080" sem o IP exporia o gateway na internet.
 

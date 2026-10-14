@@ -35,17 +35,38 @@ free -h; nproc; df -h        # o Bifrost usa ~100–150 MB; deixe >= 600 MB livr
 ss -tlnp | grep 8081         # tem que estar livre
 docker --version && docker compose version
 id appuser                   # precisa estar no grupo docker
-sudo apt install -y sqlite3 rsync
+sudo apt install -y sqlite3  # só para o backup
 ```
 
 ## 2. Primeira instalação
 
+A VPS tem um clone parcial deste repo em `/opt/bifrost-gateway`: só `deploy/3tentos` e os arquivos da raiz, sem baixar o histórico inteiro do Bifrost. O diretório de trabalho do gateway é `/opt/bifrost-gateway/deploy/3tentos`. O `.env`, o `data/` e o `backups/` ficam ali, ignorados pelo git.
+
+**1. Deploy key (somente leitura) para a VPS ler o repo privado:**
+
 ```bash
-sudo mkdir -p /opt/llm-gateway && sudo chown appuser:appuser /opt/llm-gateway
-# Copie os arquivos. Opção A: Actions → "Deploy LLM Gateway (3tentos)" → Run workflow
-#   (o rsync acontece e o deploy.sh para pedindo o .env — esperado na primeira vez).
-# Opção B, do seu PC: scp -r deploy/3tentos/. appuser@<VPS>:/opt/llm-gateway/
-cd /opt/llm-gateway
+ssh-keygen -t ed25519 -f ~/.ssh/bifrost_gateway_deploy -N "" -C "vps-bifrost-gateway"
+cat ~/.ssh/bifrost_gateway_deploy.pub
+# GitHub → repo → Settings → Deploy keys → Add deploy key → cole a chave (NÃO marque "Allow write access")
+cat >> ~/.ssh/config <<'EOF'
+Host github-bifrost
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/bifrost_gateway_deploy
+  IdentitiesOnly yes
+EOF
+chmod 600 ~/.ssh/config
+ssh -T github-bifrost        # responda "yes" ao fingerprint; deve dizer "successfully authenticated"
+```
+
+**2. Clone e subida:**
+
+```bash
+sudo mkdir -p /opt/bifrost-gateway && sudo chown appuser:appuser /opt/bifrost-gateway
+git clone --depth 1 --filter=blob:none --sparse -b 3tentos \
+  github-bifrost:ary3tentos/bifrost-gateway.git /opt/bifrost-gateway
+cd /opt/bifrost-gateway && git sparse-checkout set deploy/3tentos
+cd deploy/3tentos
 cp env.example .env && chmod 600 .env && nano .env
 mkdir -p data && sudo chown -R 1000:0 data     # o container roda como UID 1000
 bash scripts/deploy.sh
@@ -64,17 +85,25 @@ bash scripts/deploy.sh
 **Backup diário** (crontab do root, `sudo crontab -e`):
 
 ```
-0 3 * * * bash /opt/llm-gateway/scripts/backup.sh >> /var/log/llm-gateway-backup.log 2>&1
+0 3 * * * bash /opt/bifrost-gateway/deploy/3tentos/scripts/backup.sh >> /var/log/llm-gateway-backup.log 2>&1
 ```
 
-## 3. Deploy contínuo
+## 3. Atualizações
 
-- O workflow `.github/workflows/deploy-gateway.yml` roda em push na branch `3tentos` que toque `deploy/3tentos/**`, ou manualmente (Actions → Run workflow).
-- **O que ele faz:**
-  1. Valida o `config.json` contra o schema.
-  2. Faz rsync da pasta para `/opt/llm-gateway/`, preservando `.env`, `data/` e `backups/`.
-  3. Roda `scripts/deploy.sh`.
-- **Configuração no repo:** usa a variable `VPS_HOST` e o secret `VPS_SSH_PRIVATE_KEY`, os mesmos do chat-ai.
+**Manual** (na VPS, depois do merge na branch `3tentos`):
+
+```bash
+cd /opt/bifrost-gateway && git pull --ff-only && bash deploy/3tentos/scripts/deploy.sh
+```
+
+Não edite arquivos versionados (`config.json`, `docker-compose.yml`) direto na VPS: o `git pull` recusa atualizar com mudanças locais. Toda mudança vai por commit; na VPS só existem o `.env`, o `data/` e o `backups/`.
+
+**Automática (opcional):** o workflow `.github/workflows/deploy-gateway.yml` faz o mesmo `git pull` + `deploy.sh` via SSH.
+
+- **Quando roda:** em push na `3tentos` que toque `deploy/3tentos/**`, ou manualmente (Actions → Run workflow).
+- **O que faz antes:** valida o `config.json` contra o schema e o `docker-compose.yml`.
+- **O que precisa no repo:** a variable `VPS_HOST` e o secret `VPS_SSH_PRIVATE_KEY`, os mesmos do chat-ai.
+- **Enquanto não estiverem configurados:** o workflow falha no passo "Check VPS_HOST" sem tocar na VPS.
 
 `config.json` usa `source_of_truth: split` (default):
 
@@ -165,7 +194,7 @@ No PowerShell, use `curl.exe`: o alias `curl` vira `Invoke-WebRequest`.
 **Restore:**
 
 ```bash
-cd /opt/llm-gateway && docker compose down
+cd /opt/bifrost-gateway/deploy/3tentos && docker compose down
 gunzip -c backups/config-<data>.db.gz > data/config.db && rm -f data/config.db-wal data/config.db-shm
 sudo chown 1000:0 data/config.db && bash scripts/deploy.sh
 ```
