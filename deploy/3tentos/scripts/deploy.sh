@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Sobe ou atualiza o gateway na VPS e espera o /health responder.
-# Uso: bash /opt/bifrost-gateway/deploy/3tentos/scripts/deploy.sh
+# Uso: bash /data/apps/bifrost-gateway/deploy/3tentos/scripts/deploy.sh
 set -euo pipefail
 
 cd "$(dirname "$0")/.."

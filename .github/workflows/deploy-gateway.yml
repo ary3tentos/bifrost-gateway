@@ -1,6 +1,6 @@
 name: Deploy LLM Gateway (3tentos)
 
-# Atualiza o gateway na VPS: git pull no clone parcial (/opt/bifrost-gateway) + deploy.sh.
+# Atualiza o gateway na VPS: git pull no clone parcial (/data/apps/bifrost-gateway) + deploy.sh.
 # Segredos de runtime (.env) e dados (data/, backups/) são ignorados pelo git e ficam só na VPS.
 # Até VPS_HOST e VPS_SSH_PRIVATE_KEY existirem, o job para em "Check VPS_HOST" sem tocar na VPS.
 
@@ -22,7 +22,7 @@ permissions:
 
 env:
   VPS_USER: appuser
-  REMOTE_DIR: /opt/bifrost-gateway
+  REMOTE_DIR: /data/apps/bifrost-gateway
 
 jobs:
   deploy:

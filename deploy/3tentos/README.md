@@ -40,7 +40,7 @@ sudo apt install -y sqlite3  # só para o backup
 
 ## 2. Primeira instalação
 
-A VPS tem um clone parcial deste repo em `/opt/bifrost-gateway`: só `deploy/3tentos` e os arquivos da raiz, sem baixar o histórico inteiro do Bifrost. O diretório de trabalho do gateway é `/opt/bifrost-gateway/deploy/3tentos`. O `.env`, o `data/` e o `backups/` ficam ali, ignorados pelo git.
+A VPS tem um clone parcial deste repo em `/data/apps/bifrost-gateway`: só `deploy/3tentos` e os arquivos da raiz, sem baixar o histórico inteiro do Bifrost. O diretório de trabalho do gateway é `/data/apps/bifrost-gateway/deploy/3tentos`. O `.env`, o `data/` e o `backups/` ficam ali, ignorados pelo git.
 
 **1. Deploy key (somente leitura) para a VPS ler o repo privado:**
 
@@ -62,10 +62,10 @@ ssh -T github-bifrost        # responda "yes" ao fingerprint; deve dizer "succes
 **2. Clone e subida:**
 
 ```bash
-sudo mkdir -p /opt/bifrost-gateway && sudo chown appuser:appuser /opt/bifrost-gateway
+sudo mkdir -p /data/apps/bifrost-gateway && sudo chown appuser:appuser /data/apps/bifrost-gateway
 git clone --depth 1 --filter=blob:none --sparse -b 3tentos \
-  github-bifrost:ary3tentos/bifrost-gateway.git /opt/bifrost-gateway
-cd /opt/bifrost-gateway && git sparse-checkout set deploy/3tentos
+  github-bifrost:ary3tentos/bifrost-gateway.git /data/apps/bifrost-gateway
+cd /data/apps/bifrost-gateway && git sparse-checkout set deploy/3tentos
 cd deploy/3tentos
 cp env.example .env && chmod 600 .env && nano .env
 mkdir -p data && sudo chown -R 1000:0 data     # o container roda como UID 1000
@@ -85,7 +85,7 @@ bash scripts/deploy.sh
 **Backup diário** (crontab do root, `sudo crontab -e`):
 
 ```
-0 3 * * * bash /opt/bifrost-gateway/deploy/3tentos/scripts/backup.sh >> /var/log/llm-gateway-backup.log 2>&1
+0 3 * * * bash /data/apps/bifrost-gateway/deploy/3tentos/scripts/backup.sh >> /var/log/llm-gateway-backup.log 2>&1
 ```
 
 ## 3. Atualizações
@@ -93,7 +93,7 @@ bash scripts/deploy.sh
 **Manual** (na VPS, depois do merge na branch `3tentos`):
 
 ```bash
-cd /opt/bifrost-gateway && git pull --ff-only && bash deploy/3tentos/scripts/deploy.sh
+cd /data/apps/bifrost-gateway && git pull --ff-only && bash deploy/3tentos/scripts/deploy.sh
 ```
 
 Não edite arquivos versionados (`config.json`, `docker-compose.yml`) direto na VPS: o `git pull` recusa atualizar com mudanças locais. Toda mudança vai por commit; na VPS só existem o `.env`, o `data/` e o `backups/`.
@@ -194,7 +194,7 @@ No PowerShell, use `curl.exe`: o alias `curl` vira `Invoke-WebRequest`.
 **Restore:**
 
 ```bash
-cd /opt/bifrost-gateway/deploy/3tentos && docker compose down
+cd /data/apps/bifrost-gateway/deploy/3tentos && docker compose down
 gunzip -c backups/config-<data>.db.gz > data/config.db && rm -f data/config.db-wal data/config.db-shm
 sudo chown 1000:0 data/config.db && bash scripts/deploy.sh
 ```
