@@ -1,0 +1,45 @@
+# Bifrost — gateway LLM da 3tentos (Azure AI Foundry)
+#
+# Roda na VPS em /opt/llm-gateway (ver README.md). Segredos ficam em .env (fora do git).
+# A porta fica presa em 127.0.0.1: o Docker publica portas por cima do ufw, então
+# "8081:8080" sem o IP exporia o gateway na internet.
+
+name: llm-gateway
+
+services:
+  bifrost:
+    # Tag fixa. >= v2.2.5 é obrigatório (corrige bypass de auth via path traversal).
+    # Para atualizar: troque a tag, leia docs/changelogs/<versão>.mdx e faça backup antes.
+    image: maximhq/bifrost:v2.2.6
+    container_name: bifrost
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8081:8080"
+    env_file: .env
+    environment:
+      LOG_LEVEL: info
+      LOG_STYLE: json
+      GOMEMLIMIT: 450MiB
+    volumes:
+      # config.db e logs.db (SQLite). Precisa ser gravável pelo UID 1000 do container.
+      - ./data:/app/data
+      # O entrypoint lê /app/data/config.json; o arquivo é só lido, nunca escrito.
+      - ./config.json:/app/data/config.json:ro
+    mem_limit: 512m
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "5"
+    networks:
+      - llm-gw
+
+networks:
+  # Rede nomeada para outros containers da VPS (ex.: Langflow) alcançarem
+  # http://bifrost:8080 sem passar pela internet.
+  llm-gw:
+    name: llm-gw

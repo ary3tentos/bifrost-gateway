@@ -1,0 +1,93 @@
+{
+  "$schema": "https://www.getbifrost.ai/schema",
+  "encryption_key": "env.BIFROST_ENCRYPTION_KEY",
+  "client": {
+    "enforce_auth_on_inference": true,
+    "allowed_origins": [],
+    "enable_logging": true,
+    "disable_content_logging": true,
+    "log_retention_days": 90,
+    "initial_pool_size": 300,
+    "max_request_body_size_mb": 50,
+    "drop_excess_requests": false
+  },
+  "governance": {
+    "auth_config": {
+      "admin_username": "env.BIFROST_ADMIN_USERNAME",
+      "admin_password": "env.BIFROST_ADMIN_PASSWORD",
+      "is_enabled": true
+    },
+    "virtual_keys": [
+      {
+        "id": "vk-chat-ai",
+        "name": "chat-ai",
+        "description": "Backend FastAPI do chat-ai (3tentos.ai)",
+        "value": "env.BIFROST_VK_CHAT_AI",
+        "is_active": true,
+        "provider_configs": [
+          {
+            "provider": "azure",
+            "weight": 1.0,
+            "allowed_models": [
+              "gpt-4.1",
+              "gpt-5.2",
+              "gpt-5.4",
+              "gpt-5.6-sol",
+              "gpt-5-nano",
+              "text-embedding-3-small"
+            ],
+            "key_ids": ["*"]
+          }
+        ]
+      }
+    ]
+  },
+  "providers": {
+    "azure": {
+      "keys": [
+        {
+          "name": "foundry-main",
+          "value": "env.AZURE_API_KEY",
+          "models": ["*"],
+          "weight": 1.0,
+          "aliases": {
+            "gpt-4.1": "gpt-4.1",
+            "gpt-5.2": "gpt-5.2",
+            "gpt-5.4": "gpt-5.4",
+            "gpt-5.6-sol": "gpt-5.6-sol",
+            "gpt-5-nano": "gpt-5-nano",
+            "text-embedding-3-small": "text-embedding-3-small"
+          },
+          "azure_key_config": {
+            "endpoint": "env.AZURE_ENDPOINT"
+          }
+        }
+      ],
+      "network_config": {
+        "default_request_timeout_in_seconds": 300,
+        "stream_idle_timeout_in_seconds": 120,
+        "max_retries": 2,
+        "retry_backoff_initial": 500,
+        "retry_backoff_max": 5000
+      },
+      "concurrency_and_buffer_size": {
+        "concurrency": 100,
+        "buffer_size": 200
+      }
+    }
+  },
+  "config_store": {
+    "enabled": true,
+    "type": "sqlite",
+    "config": {
+      "path": "/app/data/config.db"
+    }
+  },
+  "logs_store": {
+    "enabled": true,
+    "type": "sqlite",
+    "config": {
+      "path": "/app/data/logs.db"
+    }
+  }
+}

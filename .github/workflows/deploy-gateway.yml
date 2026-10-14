@@ -1,0 +1,70 @@
+name: Deploy LLM Gateway (3tentos)
+
+# Publica deploy/3tentos/ na VPS e reinicia o container do Bifrost.
+# Não clona o monorepo na VPS: só o diretório de deploy vai por rsync.
+# Segredos de runtime (.env) e dados (data/, backups/) ficam só na VPS e nunca são sobrescritos.
+
+on:
+  push:
+    branches:
+      - 3tentos
+    paths:
+      - 'deploy/3tentos/**'
+      - '.github/workflows/deploy-gateway.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-gateway
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  VPS_USER: appuser
+  REMOTE_DIR: /opt/llm-gateway
+
+jobs:
+  deploy:
+    name: Deploy gateway
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate config.json against the schema
+        run: |
+          pip install --quiet check-jsonschema
+          check-jsonschema --schemafile transports/config.schema.json deploy/3tentos/config.json
+
+      - name: Validate docker-compose.yml
+        working-directory: deploy/3tentos
+        run: |
+          touch .env
+          docker compose config --quiet
+
+      - name: Check VPS_HOST
+        run: |
+          if [ -z "${{ vars.VPS_HOST }}" ]; then
+            echo "VPS_HOST não configurado (Settings → Secrets and variables → Actions → Variables)."
+            exit 1
+          fi
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+
+      - name: Sync deploy files
+        run: |
+          rm -f deploy/3tentos/.env
+          rsync -az --delete \
+            --exclude '.env' --exclude 'data/' --exclude 'backups/' \
+            -e "ssh -o StrictHostKeyChecking=accept-new" \
+            deploy/3tentos/ "${VPS_USER}@${{ vars.VPS_HOST }}:${REMOTE_DIR}/"
+
+      - name: Deploy
+        run: |
+          ssh -o StrictHostKeyChecking=accept-new "${VPS_USER}@${{ vars.VPS_HOST }}" \
+            "bash ${REMOTE_DIR}/scripts/deploy.sh"
