@@ -183,6 +183,8 @@ curl -s -o /dev/null -w '%{http_code}\n' --max-time 5 http://<IP-público>:8081/
 
 No PowerShell, use `curl.exe`: o alias `curl` vira `Invoke-WebRequest`.
 
+**Latência do gateway:** `bash scripts/bench-latency.sh` compara o mesmo deployment direto no Azure e pelo gateway, em rodadas alternadas (sem stream e com stream), e mostra a mediana de cada lado. Outro modelo ou mais rodadas: `N=10 DEP=gpt-4.1 VER=2025-01-01-preview bash scripts/bench-latency.sh`. Diferenças de ±200 ms estão dentro da variação normal do próprio modelo.
+
 ## 8. Backup, restore e upgrade
 
 **Backup:**
