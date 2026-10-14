@@ -8,11 +8,11 @@ replace (
 )
 
 require (
-	github.com/maximhq/bifrost/core v1.11.1
+	github.com/maximhq/bifrost/core v1.11.2
 	github.com/maximhq/bifrost/framework v1.3.16
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/driver/sqlite v1.6.0
-	gorm.io/gorm v1.31.1
+	gorm.io/gorm v1.31.2
 )
 
 require (
